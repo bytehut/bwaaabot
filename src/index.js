@@ -103,4 +103,4 @@ client.on('error', console.log);
 client.on('exit', () => console.log('Disconnected!'));
 
 
-export { spotifyApi, userTokens, pendingAuth };
+export { client, spotifyApi, userTokens, pendingAuth };

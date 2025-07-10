@@ -1,4 +1,4 @@
-import { spotifyApi, userTokens, pendingAuth } from '../index.js';
+import { client, spotifyApi, userTokens, pendingAuth } from '../index.js';
 import express from 'express';
 const router = express.Router();
 
