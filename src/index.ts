@@ -20,12 +20,12 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Configuration
 const config = {
-    guildedToken: process.env.GUILDED_TOKEN,
-    spotifyClientId: process.env.SPOTIFY_CLIENT_ID,
-    spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-    redirectUri: process.env.REDIRECT_URI || 'http://localhost:3000/spotify-callback',
-    port: process.env.PORT || 3000,
-    prefix: process.env.PREFIX
+    guildedToken: process.env.GUILDED_TOKEN!,
+    spotifyClientId: process.env.SPOTIFY_CLIENT_ID!,
+    spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
+    redirectUri: process.env.REDIRECT_URI!,
+    port: process.env.PORT!,
+    prefix: process.env.PREFIX!
 };
 
 const commands = new Map();
@@ -48,19 +48,16 @@ app.use('/', spotifyCallback);
 // app.use(express.json());
 
 // Store user tokens (in production, use a proper database)
-const userTokens = new Map();
+const userTokens = new Map<string, { accessToken: string; refreshToken: string; expiresAt: number }>();
 const pendingAuth = new Map();
 
 
 // Guilded bot event handlers
 client.on('ready', () => {
-    console.log(`Bot is ready! Logged in as ${client.user.name}`);
+    console.log(`Bot is ready! Logged in as ${client.user!.name}`);
 });
 
 client.on('messageCreated', async (message) => {
-    // Ignore bot messages
-    if (message.createdByBotId) return;
-    
     // Check if message starts with prefix
     if (!message.content.startsWith(config.prefix)) return;
 
@@ -84,7 +81,7 @@ void (async () => {
         withFileTypes: true,
     });
 
-    // go through all the files/dirs scanned from the readdir, and make sure we only have js files
+    // go through all the files/dirs scanned from the readdir, and make sure we only have js/ts files
     for (const file of commandDir.filter((x) => x.name.endsWith('.js'))) {
         console.log(file.name);
         const command = await import(join(__dirname, "commands", file.name));

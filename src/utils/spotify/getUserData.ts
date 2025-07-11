@@ -1,8 +1,12 @@
 import getValidAccessToken from "./getValidAccessToken.js";
 import { spotifyApi } from "../../index.js";
 
-// Function to get user's currently playing track
-async function getCurrentlyPlaying(userId) {
+/**
+ * Function to get user's currently playing track
+ * @param {string} userId 
+ * @returns data.body if successful, null otherwise
+ */
+async function getCurrentlyPlaying(userId: string) {
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) return null;
     
@@ -17,7 +21,7 @@ async function getCurrentlyPlaying(userId) {
 }
 
 // Function to get user's top tracks
-async function getTopTracks(userId, timeRange = 'medium_term', limit = 10) {
+async function getTopTracks(userId: string, timeRange: "long_term" | "medium_term" | "short_term" = "medium_term", limit = 10) {
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) return null;
     
@@ -35,7 +39,7 @@ async function getTopTracks(userId, timeRange = 'medium_term', limit = 10) {
 }
 
 // Function to get user's top artists
-async function getTopArtists(userId, timeRange = 'medium_term', limit = 10) {
+async function getTopArtists(userId: string, timeRange: "long_term" | "medium_term" | "short_term" = "medium_term", limit = 10) {
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) return null;
     

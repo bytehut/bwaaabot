@@ -1,7 +1,11 @@
-import { userTokens } from "../../index.js";
+import { spotifyApi, userTokens } from "../../index.js";
 
-// Function to refresh expired tokens
-async function refreshUserToken(userId) {
+/**
+ * Function to refresh expired tokens
+ * @param {string} userId 
+ * @returns {boolean} success
+ */
+async function refreshUserToken(userId: string): Promise<boolean> {
     const userToken = userTokens.get(userId);
     if (!userToken || !userToken.refreshToken) return false;
     
@@ -23,8 +27,12 @@ async function refreshUserToken(userId) {
     }
 }
 
-// Function to get valid access token for user
-async function getValidAccessToken(userId) {
+/**
+ * Function to get valid access token for user
+ * @param {string} userId 
+ * @returns {string | null} accessToken or null on failure
+ */
+async function getValidAccessToken(userId: string): Promise<string | null> {
     const userToken = userTokens.get(userId);
     if (!userToken) return null;
     
@@ -34,7 +42,7 @@ async function getValidAccessToken(userId) {
         if (!refreshed) return null;
     }
     
-    return userTokens.get(userId).accessToken;
+    return userTokens.get(userId)?.accessToken ?? null;
 }
 
 export default getValidAccessToken;

@@ -1,3 +1,4 @@
+import { Message } from 'guilded.js';
 import { spotifyApi, userTokens, pendingAuth } from '../index.js';
 import generateState from '../utils/generateOAuth.js';
 import {formatCurrentlyPlaying, formatTopItems } from '../utils/spotify/formatData.js';
@@ -12,8 +13,8 @@ const scopes = [
     'user-read-recently-played'
 ];
 
-const spotify = async (message, args) => {
-    const userId = message.author.id;
+const spotify = async (message: Message, args: string[]) => {
+    const userId = message.author!.id;
     const channelId = message.channelId;
     try {
         switch (args[0]) {
@@ -42,6 +43,10 @@ const spotify = async (message, args) => {
                 }
                 
                 const currentTrack = await getCurrentlyPlaying(userId);
+                if (!currentTrack) {
+                    await message.reply("❌ Failed to get currently playing track.");
+                    return;
+                }
                 const currentMessage = formatCurrentlyPlaying(currentTrack);
                 await message.reply(currentMessage);
                 break;
@@ -53,14 +58,27 @@ const spotify = async (message, args) => {
                 }
                 
                 const subCommand = args[1]?.toLowerCase();
-                const timeRange = args[2] || 'medium_term'; // short_term, medium_term, long_term
-                
+                const inputTimeRange = args[2] || 'medium_term'; // short_term, medium_term, long_term
+
+                // validate time range
+                const allowedRanges = ["short_term", "medium_term", "long_term"] as const;
+                type TimeRange = typeof allowedRanges[number];
+                const timeRange = allowedRanges.includes(inputTimeRange as TimeRange) ? (inputTimeRange as TimeRange) : undefined;
+
                 if (subCommand === 'tracks') {
                     const topTracks = await getTopTracks(userId, timeRange);
+                    if (!topTracks) {
+                        await message.reply("❌ Failed to get top tracks.");
+                        return;
+                    }
                     const tracksMessage = formatTopItems(topTracks, 'tracks');
                     await message.reply(tracksMessage);
                 } else if (subCommand === 'artists') {
                     const topArtists = await getTopArtists(userId, timeRange);
+                    if (!topArtists) {
+                        await message.reply("❌ Failed to get top artists.");
+                        return;
+                    }
                     const artistsMessage = formatTopItems(topArtists, 'artists');
                     await message.reply(artistsMessage);
                 } else {

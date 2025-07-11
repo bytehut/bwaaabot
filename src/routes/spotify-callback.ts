@@ -17,7 +17,7 @@ router.get('/spotify-callback', async (req, res) => {
     
     try {
         // Exchange code for access token
-        const data = await spotifyApi.authorizationCodeGrant(code);
+        const data = await spotifyApi.authorizationCodeGrant(code as string);
         const { access_token, refresh_token, expires_in } = data.body;
         
         // Store user tokens
