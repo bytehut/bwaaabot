@@ -1,11 +1,13 @@
-import { client, spotifyApi, userTokens, pendingAuth } from '../index.js';
+import { client, spotifyApi, pendingAuth } from '../index.js';
+import { setToken } from '../utils/spotify/manageAccessTokens.js';
 import express from 'express';
 const router = express.Router();
+
 
 // OAuth callback route
 router.get('/spotify-callback', async (req, res) => {
     const { code, state } = req.query;
-    
+
     if (!code) {
         return res.status(400).send('Authorization code missing');
     }
@@ -20,12 +22,8 @@ router.get('/spotify-callback', async (req, res) => {
         const data = await spotifyApi.authorizationCodeGrant(code as string);
         const { access_token, refresh_token, expires_in } = data.body;
         
-        // Store user tokens
-        userTokens.set(pendingData.userId, {
-            accessToken: access_token,
-            refreshToken: refresh_token,
-            expiresAt: Date.now() + (expires_in * 1000)
-        });
+        // store token
+        setToken(pendingData.userId, access_token, refresh_token, expires_in);
         
         // Clean up pending auth
         pendingAuth.delete(state);

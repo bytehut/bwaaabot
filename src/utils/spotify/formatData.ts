@@ -1,5 +1,3 @@
-
-
 // Function to format currently playing track message
 function formatCurrentlyPlaying(track: SpotifyApi.CurrentlyPlayingObject) {
     if (!track || !track.item) {

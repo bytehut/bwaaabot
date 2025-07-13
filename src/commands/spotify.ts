@@ -1,9 +1,12 @@
 import { Message } from 'guilded.js';
-import { spotifyApi, userTokens, pendingAuth } from '../index.js';
+import { spotifyApi, pendingAuth } from '../index.js';
 import generateState from '../utils/generateOAuth.js';
 import {formatCurrentlyPlaying, formatTopItems } from '../utils/spotify/formatData.js';
 import { getCurrentlyPlaying, getTopArtists, getTopTracks } from '../utils/spotify/getUserData.js';
+import { getValidAccessToken } from '../utils/spotify/manageAccessTokens.js';
+import { SpotifyTokenService } from '../database/index.js';
 
+const tokenService = new SpotifyTokenService();
 
 // Spotify OAuth scopes needed
 const scopes = [
@@ -17,6 +20,7 @@ const spotify = async (message: Message, args: string[]) => {
     const userId = message.author!.id;
     const channelId = message.channelId;
     try {
+        const accessToken = await getValidAccessToken(userId);
         switch (args[0]) {
             case 'connect':
             case 'login':
@@ -37,12 +41,12 @@ const spotify = async (message: Message, args: string[]) => {
             case 'now':
             case 'current':
             case 'playing':
-                if (!userTokens.has(userId)) {
+                if (!accessToken) {
                     await message.reply("❌ You need to connect your Spotify account first! Use `!spotify connect`");
                     return;
                 }
                 
-                const currentTrack = await getCurrentlyPlaying(userId);
+                const currentTrack = await getCurrentlyPlaying(accessToken);
                 if (!currentTrack) {
                     await message.reply("❌ Failed to get currently playing track.");
                     return;
@@ -52,7 +56,7 @@ const spotify = async (message: Message, args: string[]) => {
                 break;
                 
             case 'top':
-                if (!userTokens.has(userId)) {
+                if (!accessToken) {
                     await message.reply("❌ You need to connect your Spotify account first! Use `!spotify connect`");
                     return;
                 }
@@ -66,7 +70,7 @@ const spotify = async (message: Message, args: string[]) => {
                 const timeRange = allowedRanges.includes(inputTimeRange as TimeRange) ? (inputTimeRange as TimeRange) : undefined;
 
                 if (subCommand === 'tracks') {
-                    const topTracks = await getTopTracks(userId, timeRange);
+                    const topTracks = await getTopTracks(accessToken, timeRange);
                     if (!topTracks) {
                         await message.reply("❌ Failed to get top tracks.");
                         return;
@@ -74,7 +78,7 @@ const spotify = async (message: Message, args: string[]) => {
                     const tracksMessage = formatTopItems(topTracks, 'tracks');
                     await message.reply(tracksMessage);
                 } else if (subCommand === 'artists') {
-                    const topArtists = await getTopArtists(userId, timeRange);
+                    const topArtists = await getTopArtists(accessToken, timeRange);
                     if (!topArtists) {
                         await message.reply("❌ Failed to get top artists.");
                         return;
@@ -87,8 +91,8 @@ const spotify = async (message: Message, args: string[]) => {
                 break;
                 
             case 'disconnect':
-                if (userTokens.has(userId)) {
-                    userTokens.delete(userId);
+                if (accessToken) {
+                    await tokenService.deleteToken(userId);
                     await message.reply("✅ Your Spotify account has been disconnected.");
                 } else {
                     await message.reply("❌ You don't have a connected Spotify account.");
@@ -115,6 +119,6 @@ const spotify = async (message: Message, args: string[]) => {
 
 export default {
     name: 'spotify',
-    aliases: ['spot'],
+    aliases: ['s'],
     execute: spotify
 };

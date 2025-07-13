@@ -8,6 +8,9 @@ import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
+import { connectToDatabase, closeDatabase } from './database/index.js';
+
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -25,7 +28,9 @@ const config = {
     spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
     redirectUri: process.env.REDIRECT_URI!,
     port: process.env.PORT!,
-    prefix: process.env.PREFIX!
+    prefix: process.env.PREFIX!,
+    mongoConnectionUri: process.env.MONGO_CONNECTION_URI!,
+    mongoDbName: process.env.MONGO_DB_NAME!
 };
 
 const commands = new Map();
@@ -34,6 +39,10 @@ const commands = new Map();
 const client = new Client({
     token: config.guildedToken
 });
+
+// Initialize MongoDB connection
+await connectToDatabase(config.mongoConnectionUri, config.mongoDbName);
+
 
 // Initialize Spotify API
 const spotifyApi = new SpotifyWebApi({
@@ -47,8 +56,6 @@ const app = express();
 app.use('/', spotifyCallback);
 // app.use(express.json());
 
-// Store user tokens (in production, use a proper database)
-const userTokens = new Map<string, { accessToken: string; refreshToken: string; expiresAt: number }>();
 const pendingAuth = new Map();
 
 
@@ -99,5 +106,17 @@ app.listen(config.port, () => {
 client.on('error', console.log);
 client.on('exit', () => console.log('Disconnected!'));
 
+// Gracefully close the database connection when the process is interrupted
+process.on('SIGINT', async () => {
+    console.log('Shutting down gracefully...');
+    await closeDatabase();
+    process.exit(0);
+});
 
-export { client, spotifyApi, userTokens, pendingAuth };
+process.on('SIGTERM', async () => {
+    console.log('Shutting down gracefully...');
+    await closeDatabase();
+    process.exit(0);
+});
+
+export { client, spotifyApi, pendingAuth };
