@@ -3,10 +3,13 @@ export {
     closeDatabase, 
     getDatabase, 
     getCollection 
-  } from './connection.js';
+} from './connection.js';
   
-  export { SpotifyTokenService } from './spotifyTokens.js';
+export { SpotifyTokenService } from './spotifyTokens.js';
+export { ListenAlongHistoryService } from './listenAlongHistory.js';
   
-  export type { 
-    SpotifyToken
-  } from './connection.js';
+export type { 
+    SpotifyToken, 
+    ListenAlongSession, 
+    ListenAlongHistory 
+} from './connection.js';

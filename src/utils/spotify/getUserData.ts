@@ -1,4 +1,3 @@
-import { getValidAccessToken } from "./manageAccessTokens.js";
 import { spotifyApi } from "../../index.js";
 
 /**
