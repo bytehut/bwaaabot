@@ -5,9 +5,10 @@ import {formatCurrentlyPlaying, formatTopItems } from '../utils/spotify/formatDa
 import { getCurrentlyPlaying, getTopArtists, getTopTracks } from '../utils/spotify/getUserData.js';
 import { getValidAccessToken } from '../utils/spotify/manageAccessTokens.js';
 import { SpotifyTokenService } from '../database/index.js';
-import { createSession, getSessionsByServer, getSessionByRoom, joinSession, disconnectSession } from '../utils/spotify/listenAlongManager.js';
+import { createSession, getSessionsByServer, getSessionByRoom, joinSession, removeUserFromSession, getUserSessionRoomId } from '../utils/spotify/listenAlongManager.js';
 import { ListenAlongSession } from '../database/connection.js';
 import { customAlphabet } from 'nanoid';
+import { syncListenerToLeader } from '../utils/spotify/listenAlongSyncEngine.js';
 
 const tokenService = new SpotifyTokenService();
 
@@ -97,7 +98,6 @@ const spotify = async (message: Message, args: string[]) => {
             case 'listenalong': {
                 const sub = args[1]?.toLowerCase();
                 const serverId = message.serverId!;
-                // const roomId = channelId; // No longer use channelId as roomId
                 const nanoid = customAlphabet('1234567890abcdef', 8);
                 switch (sub) {
                     case 'create': {
@@ -112,7 +112,7 @@ const spotify = async (message: Message, args: string[]) => {
                             serverId,
                             roomId,
                             host: userId,
-                            currentListeners: [userId],
+                            currentListeners: new Set([userId]),
                             listenersHistory: new Set([userId]),
                             trackHistory: [],
                             dateCreated: new Date(),
@@ -137,11 +137,19 @@ const spotify = async (message: Message, args: string[]) => {
                             await message.reply('❌ No active Listen Along session with that Room ID.');
                             break;
                         }
-                        if (session.currentListeners.includes(userId)) {
+                        if (session.currentListeners.has(userId)) {
                             await message.reply('❌ You are already in this Listen Along session.');
                             break;
                         }
-                        joinSession(joinRoomId, userId);
+                        joinSession(userId, joinRoomId);
+                        // Immediately sync playback to leader
+                        const hostAccessToken = await getValidAccessToken(session.host);
+                        if (hostAccessToken) {
+                            const leaderPlayback = await getCurrentlyPlaying(hostAccessToken);
+                            if (leaderPlayback) {
+                                await syncListenerToLeader(userId, leaderPlayback, true, true);
+                            }
+                        }
                         await message.reply('🎶 You joined the Listen Along session!');
                         break;
                     }
@@ -150,40 +158,30 @@ const spotify = async (message: Message, args: string[]) => {
                         if (sessions.length === 0) {
                             await message.reply('No active Listen Along sessions in this server.');
                         } else {
-                            const list = sessions.map(s => `• Room ID: \`\`\`${s.roomId}\`\`\` Host: <@${s.host}>, Listeners: ${s.currentListeners.length}`).join('\n');
+                            const list = sessions.map(s => `• Room ID: \`\`\`${s.roomId}\`\`\` Host: <@${s.host}>, Listeners: ${s.currentListeners.size}`).join('\n');
                             await message.reply(`🎶 **Active Listen Along sessions:**\n${list}`);
                         }
                         break;
                     }
                     case 'disconnect': {
-                        if (!accessToken) {
-                            await message.reply("❌ You need to connect your Spotify account first! Use `!spotify connect`");
-                            return;
-                        }
-                        // User must specify which session to disconnect from
-                        const disconnectRoomId = args[2];
-                        if (!disconnectRoomId) {
-                            await message.reply('❌ Please specify a Room ID to disconnect from. Usage: `!spotify listenalong disconnect [roomId]`');
+                        // Remove user from their current session
+                        const currentRoomId = getUserSessionRoomId(userId);
+                        if (!currentRoomId) {
+                            await message.reply('❌ You are not in any Listen Along session.');
                             break;
                         }
-                        const session = getSessionByRoom(disconnectRoomId);
-                        if (!session) {
-                            await message.reply('❌ No active Listen Along session with that Room ID.');
-                            break;
-                        }
-                        const wasHost = session.host === userId;
-                        const removed = disconnectSession(disconnectRoomId, userId);
-                        if (removed && wasHost) {
+                        const session = getSessionByRoom(currentRoomId);
+                        const wasHost = session && session.host === userId;
+                        removeUserFromSession(userId);
+                        if (wasHost) {
                             await message.reply('👋 You ended the Listen Along session as the host.');
-                        } else if (removed) {
-                            await message.reply('👋 You left the Listen Along session.');
                         } else {
-                            await message.reply('❌ You are not part of this Listen Along session.');
+                            await message.reply('👋 You left the Listen Along session.');
                         }
                         break;
                     }
                     default:
-                        await message.reply('🎵 **Listen Along Commands:**\n`!spotify listenalong create`\n`!spotify listenalong join [roomId]`\n`!spotify listenalong view`\n`!spotify listenalong disconnect [roomId]`');
+                        await message.reply('🎵 **Listen Along Commands:**\n`!spotify listenalong create`\n`!spotify listenalong join [roomId]`\n`!spotify listenalong view`\n`!spotify listenalong disconnect`');
                         break;
                 }
                 break;

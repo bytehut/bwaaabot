@@ -12,6 +12,33 @@ interface InMemorySession extends ListenAlongSession {
 // Poll interval in ms
 const POLL_INTERVAL = 3000;
 
+export async function syncListenerToLeader(
+    listenerId: string,
+    leaderPlayback: SpotifyApi.CurrentlyPlayingResponse,
+    trackChanged: boolean,
+    seekChanged: boolean
+) {
+    try {
+        if (!leaderPlayback || !leaderPlayback.is_playing || !leaderPlayback.item) return;
+        const userAccessToken = await getValidAccessToken(listenerId);
+        if (!userAccessToken) return;
+        spotifyApi.setAccessToken(userAccessToken);
+        // If track changed, start playing the new track at the correct position
+        if (trackChanged) {
+            await spotifyApi.play({
+                uris: [leaderPlayback.item.uri],
+                position_ms: leaderPlayback.progress_ms ?? 0
+            });
+        } else if (seekChanged) {
+            // If only seek changed, seek to the correct position
+            await spotifyApi.seek(leaderPlayback.progress_ms ?? 0);
+        }
+    } catch (err) {
+        console.error(`Failed to sync listener ${listenerId} to leader:`, err);
+        throw err;
+    }
+}
+
 export function startListenAlongSyncEngine() {
   setInterval(async () => {
     const allSessions: InMemorySession[] = [];
@@ -29,31 +56,24 @@ export function startListenAlongSyncEngine() {
         if (!leaderPlayback || !leaderPlayback.is_playing || !leaderPlayback.item) continue;
         // Compare with last known state
         const last = session.lastLeaderPlayback;
+        // Drift detection: only sync if leader's position is outside [last + poll_interval - 3, last + poll_interval + 3]
+        let seekChanged = false;
+        if (last && last.progress_ms !== undefined && leaderPlayback.progress_ms !== undefined) {
+          const lastProgress = last.progress_ms ?? 0;
+          const leaderProgress = leaderPlayback.progress_ms ?? 0;
+          const expected = lastProgress + POLL_INTERVAL;
+          const lower = expected - 3000;
+          const upper = expected + 3000;
+          seekChanged = leaderProgress < lower || leaderProgress > upper;
+        } else {
+          seekChanged = true;
+        }
         const trackChanged = !last || last.item?.id !== leaderPlayback.item.id;
-        const seekChanged = !last || Math.abs((leaderPlayback.progress_ms ?? 0) - (last.progress_ms ?? 0)) > 3000;
         if (trackChanged || seekChanged) {
           // Update all listeners
           for (const listenerId of session.currentListeners) {
             if (listenerId === session.host) continue;
-            const listenerToken = await getValidAccessToken(listenerId);
-            if (!listenerToken) continue;
-            try {
-              spotifyApi.setAccessToken(listenerToken);
-              // If track changed, start playing the new track at the correct position
-              if (trackChanged) {
-                await spotifyApi.play({
-                  uris: [leaderPlayback.item.uri],
-                  position_ms: leaderPlayback.progress_ms ?? 0
-                });
-              } else if (seekChanged) {
-                // If only seek changed, seek to the correct position
-                await spotifyApi.seek(leaderPlayback.progress_ms ?? 0);
-              }
-            } catch (err) {
-              // Handle playback sync error for this listener
-              // (e.g., log, optionally remove from session)
-              console.error(`Failed to sync listener ${listenerId}:`, err);
-            }
+            await syncListenerToLeader(listenerId, leaderPlayback, trackChanged, seekChanged);
           }
           // Update last known state
           session.lastLeaderPlayback = leaderPlayback;

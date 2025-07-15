@@ -14,7 +14,7 @@ export interface ListenAlongSession extends Document {
     serverId: string;
     roomId: string;
     host: string;
-    currentListeners: string[];
+    currentListeners: Set<string>;
     listenersHistory: Set<string>;
     trackHistory: SpotifyApi.TrackObjectFull[];
     dateCreated: Date;
