@@ -187,7 +187,12 @@ const spotify = async (message: Message, args: string[]) => {
                         break;
                     }
                     default:
-                        await message.reply('🎵 **Listen Along Commands:**\n`!spotify listenalong create`\n`!spotify listenalong join [roomId]`\n`!spotify listenalong view`\n`!spotify listenalong disconnect`');
+                        await message.reply(`🎵 **Listen Along Commands:**
+\`!spotify listenalong create\` - Create a new Listen Along session
+\`!spotify listenalong join [roomId]\` - Join a Listen Along session
+\`!spotify listenalong view\` - View active Listen Along sessions
+\`!spotify listenalong disconnect\` - Disconnect from the current Listen Along session
+`);
                         break;
                 }
                 break;
@@ -211,7 +216,14 @@ const spotify = async (message: Message, args: string[]) => {
 \`!spotify top artists [time_range]\` - Show your top artists
 \`!spotify disconnect\` - Disconnect your Spotify account
 
-**Time ranges:** short_term (4 weeks), medium_term (6 months), long_term (years)`);
+**Time ranges:** short_term (4 weeks), medium_term (6 months), long_term (years)
+
+**Listen Along Commands:**
+\`!spotify listenalong create\` - Create a new Listen Along session
+\`!spotify listenalong join [roomId]\` - Join a Listen Along session
+\`!spotify listenalong view\` - View active Listen Along sessions
+\`!spotify listenalong disconnect\` - Disconnect from the current Listen Along session
+`);
                 break;
         }
     } catch (error) {
