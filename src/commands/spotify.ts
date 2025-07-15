@@ -141,15 +141,21 @@ const spotify = async (message: Message, args: string[]) => {
                             await message.reply('❌ You are already in this Listen Along session.');
                             break;
                         }
-                        joinSession(userId, joinRoomId);
                         // Immediately sync playback to leader
                         const hostAccessToken = await getValidAccessToken(session.host);
                         if (hostAccessToken) {
                             const leaderPlayback = await getCurrentlyPlaying(hostAccessToken);
                             if (leaderPlayback) {
-                                await syncListenerToLeader(userId, leaderPlayback, true, true);
+                                const result = await syncListenerToLeader(userId, leaderPlayback, true, true);
+                                if (result === "NO_ACTIVE_DEVICE") {
+                                    await message.reply(
+                                        "❌ You must have an active Spotify device (e.g., open Spotify and start playing something on your phone or computer) before joining a Listen Along."
+                                    );
+                                    return;
+                                }
                             }
                         }
+                        joinSession(userId, joinRoomId);
                         await message.reply('🎶 You joined the Listen Along session!');
                         break;
                     }
