@@ -20,7 +20,7 @@ async function refreshUserToken(userId: string): Promise<SpotifyToken | null> {
         const data = await spotifyApi.refreshAccessToken();
         const { access_token, refresh_token, expires_in } = data.body;
         
-        setToken(userId, access_token, refresh_token ?? userToken.refreshToken, expires_in);
+        await setToken(userId, access_token, refresh_token ?? userToken.refreshToken, expires_in);
         
         return {
             userId: userId,

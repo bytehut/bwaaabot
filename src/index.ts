@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
 import { connectToDatabase, closeDatabase } from './database/index.js';
+import { startListenAlongSyncEngine } from './utils/spotify/listenAlongSyncEngine.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,6 +58,9 @@ app.use('/', spotifyCallback);
 // app.use(express.json());
 
 const pendingAuth = new Map();
+
+// Start the listen along sync engine
+startListenAlongSyncEngine();
 
 
 // Guilded bot event handlers

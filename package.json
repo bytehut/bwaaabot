@@ -17,6 +17,7 @@
     "express": "^5.1.0",
     "guilded.js": "^0.25.0",
     "mongodb": "^6.17.0",
+    "nanoid": "^5.1.5",
     "spotify-web-api-node": "^5.0.2"
   },
   "devDependencies": {

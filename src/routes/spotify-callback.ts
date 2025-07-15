@@ -23,7 +23,7 @@ router.get('/spotify-callback', async (req, res) => {
         const { access_token, refresh_token, expires_in } = data.body;
         
         // store token
-        setToken(pendingData.userId, access_token, refresh_token, expires_in);
+        await setToken(pendingData.userId, access_token, refresh_token, expires_in);
         
         // Clean up pending auth
         pendingAuth.delete(state);

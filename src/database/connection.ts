@@ -13,8 +13,9 @@ export interface SpotifyToken extends Document {
 export interface ListenAlongSession extends Document {
     serverId: string;
     roomId: string;
-    host: SpotifyToken;
-    listeners: SpotifyToken[];
+    host: string;
+    currentListeners: string[];
+    listenersHistory: Set<string>;
     trackHistory: SpotifyApi.TrackObjectFull[];
     dateCreated: Date;
     dateEnded: Date | null;
