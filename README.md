@@ -25,4 +25,6 @@ Current features:
 
 Next steps:
 - Detect when listeners desync for automatic disconnect from listen alongs
+- Add listen along history
+- Improve UX with embeds and additional information for listen alongs
 - Fix all the bugs lol
